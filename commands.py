@@ -1,5 +1,6 @@
 import datetime
 from datetime import datetime as dt
+from hardware_state import sensor
 
 help_strings = {}
 
@@ -30,23 +31,43 @@ def cmd_alarm(state, params):
             else:
                 return "invalid repetition type"
 
-        state.add_alarm(time, mode)
+        state.alarm_state.add_alarm(time, mode)
         return "alarm set\n"
     return cmd_help(state, ["alarm"])
 
 help_strings["list"] = "list : shows all alarms"
 def cmd_list(state, params):
     list_str = ""
-    for i in range(len(state.alarms)):
-        alarm = state.alarms[i]
+    for i in range(len(state.alarm_state.alarms)):
+        alarm = state.alarm_state.alarms[i]
         list_str += str(i) + " | " + alarm.time.strftime("%H:%M") + " (" + alarm.mode + ")\n"
     return list_str
 
 help_strings["delete"] = "delete <id>: deletes the alarm with the id given"
 def cmd_delete(state, params):
     if params:
-        if int(params[0]) < len(state.alarms):
-            state.delete_alarm(state.alarms(int(params[0])))
+        if int(params[0]) < len(state.alarm_state.alarms):
+            state.alarm_state.delete_alarm(state.alarm_state.alarms(int(params[0])))
             return "alarm deleted\n"
         return "no such alarm\n"
     return cmd_help(state, ["delete"])
+
+help_strings["sensor"] = "sensor : various commands to manage sensors:\n"
+def cmd_sensor(state, params):
+    subcommands = {"add" : cmd_sensor_add}
+
+    if params:
+        if params[0] in subcommands:
+            return subcommands.get(params[0])(state, params[1:])
+
+    return cmd_help(state, ["sensor"])
+
+help_strings["sensor"] += " - add <id> : adds the sensor with the specified ID"
+def cmd_sensor_add(state, params):
+    if not params:
+        return "id field missing\n"
+    sens = sensor()
+    sens.id = params[0]
+    sens.trivial_name = sens.id
+    state.hardware_state.add_sensor(sens)
+    return "sensor added\n"

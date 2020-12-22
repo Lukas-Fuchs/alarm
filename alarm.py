@@ -2,9 +2,9 @@ import socket
 import threading
 import time
 from commands import *
-from alarm_state import *
+from state import *
 
-state = alarm_state()
+state = state()
 
 def telnet_command(line):
     words = line.split()
@@ -17,7 +17,8 @@ def telnet_command(line):
         "help" : cmd_help,
         "alarm" : cmd_alarm,
         "list" : cmd_list,
-        "delete" : cmd_delete
+        "delete" : cmd_delete,
+        "sensor" : cmd_sensor
             }
 
     if command in commands:
@@ -50,23 +51,23 @@ def server_main():
         conn.close()
 
 
-# periodically poll alarm state for alarms that are ready to be triggered
+# periodically poll alarm state.alarm_state for alarms that are ready to be triggered
 def alarm_polling_loop():
     while True:
-        if state.poll():
+        if state.alarm_state.poll():
             print("alarm triggered")
         time.sleep(20)
 
-# load and replay commands that build the saved state
-state.clear()
-state.block_saving = True
+# load and replay commands that build the saved state.alarm_state
+state.alarm_state.clear()
+state.alarm_state.block_saving = True
 save_file = open("alarm_state.dat", "r")
 save_lines = save_file.readlines()
 save_file.close()
 for command in save_lines:
     telnet_command(command)
-state.block_saving = False
-state.save()
+state.alarm_state.block_saving = False
+state.alarm_state.save()
 
 # start the server for handling telnet commands
 server_thread = threading.Thread(target=server_main)
