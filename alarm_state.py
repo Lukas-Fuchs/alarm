@@ -54,5 +54,5 @@ class alarm_state:
 
         out = open("alarm_state.dat", "w")
         for al in self.alarms:
-            out.write("alarm add" + al.time.strftime("%H:%M") + " " + al.mode + "\n")
+            out.write("alarm add " + al.time.strftime("%H:%M") + " " + al.mode + "\n")
         out.close()
