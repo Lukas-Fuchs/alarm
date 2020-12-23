@@ -3,6 +3,7 @@ import threading
 import time
 from commands import *
 from state import *
+from hardware_listener import *
 
 state = state()
 
@@ -16,7 +17,9 @@ def telnet_command(line):
     commands = {
         "help" : cmd_help,
         "alarm" : cmd_alarm,
-        "sensor" : cmd_sensor
+        "sensor" : cmd_sensor,
+        "fifo" : cmd_fifo,
+        "ls" : cmd_ls
             }
 
     if command in commands:
@@ -40,6 +43,7 @@ def server_main():
         #_ = conn.recv(1024) # telnet sends junk on connection
 
         while True:
+            conn.send(("> ").encode("utf_8", "ignore"))
             data = conn.recv(1024).decode("utf_8", "ignore")
             if not data:
                 break
@@ -70,5 +74,8 @@ state.alarm_state.save()
 # start the server for handling telnet commands
 server_thread = threading.Thread(target=server_main)
 server_thread.start()
+
+fifo_thread = threading.Thread(target=fifo_listener, args=(hardware_state,))
+fifo_thread.start()
 
 alarm_polling_loop()
