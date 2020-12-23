@@ -17,8 +17,21 @@ def cmd_help(state, params):
             full_help += val + "\n"
         return full_help
 
-help_strings["alarm"] = "alarm <hour>:<minute> [mode] : sets an alarm\n\tmode can be: \"daily\", \"single\""
+help_strings["alarm"] = "alarm <sub command> : commands for setting and modifying alarms"
 def cmd_alarm(state, params):
+    subcommands = {"add" : cmd_alarm_add,
+                   "list" : cmd_alarm_list,
+                   "delete" : cmd_alarm_delete}
+
+    if params:
+        if params[0] in subcommands:
+            return subcommands[params[0]](state, params[1:])
+
+    return cmd_help(state, ["alarm"])
+
+
+help_strings["alarm"] += "\n\t- add <hour>:<minute> [mode] : sets an alarm\n\t\tmode can be: \"daily\", \"single\""
+def cmd_alarm_add(state, params):
     if params:
         time = dt.now()
         mode = "daily"
@@ -35,24 +48,25 @@ def cmd_alarm(state, params):
         return "alarm set\n"
     return cmd_help(state, ["alarm"])
 
-help_strings["list"] = "list : shows all alarms"
-def cmd_list(state, params):
+help_strings["alarm"] += "\n\t- list : shows all alarms"
+def cmd_alarm_list(state, params):
     list_str = ""
     for i in range(len(state.alarm_state.alarms)):
         alarm = state.alarm_state.alarms[i]
         list_str += str(i) + " | " + alarm.time.strftime("%H:%M") + " (" + alarm.mode + ")\n"
     return list_str
 
-help_strings["delete"] = "delete <id>: deletes the alarm with the id given"
-def cmd_delete(state, params):
+help_strings["alarm"] += "\n\t- delete <id> : deletes the alarm with the id given"
+def cmd_alarm_delete(state, params):
     if params:
-        if int(params[0]) < len(state.alarm_state.alarms):
-            state.alarm_state.delete_alarm(state.alarm_state.alarms(int(params[0])))
+        index = int(params[0])
+        if 0 < index < len(state.alarm_state.alarms):
+            state.alarm_state.delete_alarm(state.alarm_state.alarms[index])
             return "alarm deleted\n"
         return "no such alarm\n"
     return cmd_help(state, ["delete"])
 
-help_strings["sensor"] = "sensor : various commands to manage sensors:\n"
+help_strings["sensor"] = "sensor : commands to manage sensors:"
 def cmd_sensor(state, params):
     subcommands = {"add" : cmd_sensor_add}
 
@@ -62,7 +76,7 @@ def cmd_sensor(state, params):
 
     return cmd_help(state, ["sensor"])
 
-help_strings["sensor"] += " - add <id> : adds the sensor with the specified ID"
+help_strings["sensor"] += "\n\t- add <id> : adds the sensor with the specified ID"
 def cmd_sensor_add(state, params):
     if not params:
         return "id field missing\n"

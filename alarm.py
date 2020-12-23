@@ -16,8 +16,6 @@ def telnet_command(line):
     commands = {
         "help" : cmd_help,
         "alarm" : cmd_alarm,
-        "list" : cmd_list,
-        "delete" : cmd_delete,
         "sensor" : cmd_sensor
             }
 
