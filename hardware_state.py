@@ -46,6 +46,16 @@ class sensor:
         if (would_activate and run_time >= self.t_rising) or (not would_activate and run_time >= self.t_falling):
             self._activated = would_activate
 
+# pretty simple data class to describe actions to be taken as rule consequences
+class action:
+    # unique identifier for this action; used to reference it further
+    id = ""
+    # fifo to write to
+    fifo = ""
+    # what to write to the fifo;
+    # this will usually be something a process at the other end of the fifo can understand.
+    value = ""
+
 
 class hardware_state:
     # holds all sensors, the key being the sensor's id.
@@ -55,6 +65,9 @@ class hardware_state:
 
     # all fifos to get information from
     fifos = {}
+
+    # all registered actions
+    actions = {}
 
     lock = threading.Lock()
 
