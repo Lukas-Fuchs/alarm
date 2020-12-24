@@ -34,14 +34,14 @@ class sensor:
 
     # called whenever a signal is received from this sensor
     def signal(self, level):
-        print("signal " + level + " for sensor " + self.id)
-        run_time = dt.now() - self._run_start
+        print("signal " + str(level) + " for sensor " + self.id)
+        run_time = (dt.now() - self._run_start).total_seconds()
         would_activate = not level <= self.threshold_falling and level >= self.threshold_rising
 
-        if would_activate != _run_value:
+        if would_activate != self._run_value:
             self._run_start = dt.now()
             run_time = 0
-            self._run_start = would_activate
+            self._run_value = would_activate
 
         if (would_activate and run_time >= self.t_rising) or (not would_activate and run_time >= self.t_falling):
             self._activated = would_activate
@@ -61,7 +61,7 @@ class hardware_state:
 
     def add_sensor(self, s):
         with self.lock:
-            self.sensors[sensor.id] = s
+            self.sensors[s.id] = s
             self.save()
 
     def add_fifo(self, ff_name):

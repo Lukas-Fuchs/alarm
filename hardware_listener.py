@@ -18,11 +18,11 @@ def fifo_listener(state):
                 for line in lines:
                     words = line.split()
 
-                    print(line)
+                    print(words)
 
                     # skip invalid events
                     if len(words) == 2:
                         if words[0] not in state.encountered_sensors:
                             state.encountered_sensors.append(words[0])
                         if words[0] in state.sensors:
-                            state.sensors[words[0]].signal(words[1])
+                            state.sensors[words[0]].signal(int(words[1]))
