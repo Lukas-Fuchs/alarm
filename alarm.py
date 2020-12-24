@@ -61,15 +61,22 @@ def alarm_polling_loop():
         time.sleep(20)
 
 # load and replay commands that build the saved state.alarm_state
-state.alarm_state.clear()
-state.alarm_state.block_saving = True
-save_file = open("alarm_state.dat", "r")
-save_lines = save_file.readlines()
-save_file.close()
-for command in save_lines:
-    telnet_command(command)
-state.alarm_state.block_saving = False
-state.alarm_state.save()
+def replay_file(fname):
+    # first touch the file to make sure it exists
+    save_file = open(fname, "a")
+    save_file.close()
+
+    save_file = open(fname, "r")
+    save_lines = save_file.readlines()
+    save_file.close()
+    for command in save_lines:
+        telnet_command(command)
+
+state.clear()
+state.block_saving(True)
+replay_file("alarm_state.dat")
+replay_file("hardware_state.dat")
+state.block_saving(False)
 
 # start the server for handling telnet commands
 server_thread = threading.Thread(target=server_main)

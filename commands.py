@@ -85,6 +85,15 @@ def cmd_sensor_add(state, params):
     sens = sensor()
     sens.id = params[0]
     sens.trivial_name = sens.id
+    if len(params) > 1:
+        sens.t_rising = int(params[1])
+    if len(params) > 2:
+        sens.t_falling = int(params[2])
+    if len(params) > 3:
+        sens.threshold_rising = int(params[3])
+    if len(params) > 4:
+        sens.threshold_falling = int(params[4])
+
     state.hardware_state.add_sensor(sens)
     return "sensor added\n"
 

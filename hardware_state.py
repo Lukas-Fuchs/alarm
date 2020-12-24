@@ -7,16 +7,21 @@ class sensor:
     trivial_name = ""       # intuitive name that may be set by the user
     type = ""               # type of sensor; may be relevant for interpreting signals
 
+    # the default settings are for a stable sensor with refresh rate < 1s
+    t_rising = 0            # time (in s) required to interpret signals as activation
+    t_falling = 1           # time (in s) required to interpret no-signal as deactivation
+
     # setting both of these to the same number results in everything greater
     # to be interpreted as on
     threshold_rising = 0    # signal level required to interpret as on
     threshold_falling = 0   # max signal level to be interpreted as off
 
-    # the default settings are for a stable sensor with refresh rate < 1s
-    t_rising = 0            # time (in s) required to interpret signals as activation
-    t_falling = 1           # time (in s) required to interpret no-signal as deactivation
-
     ###### run time state ######
+
+    # If this is true save() won't have any effect.
+    # This can be helpful to prevent saving when replaying changes to the state
+    block_saving = False
+
     _activated = False
     _signal_level = 0
 
@@ -51,6 +56,7 @@ class hardware_state:
 
     def add_sensor(self, s):
         self.sensors[sensor.id] = s
+        self.save()
 
     def add_fifo(self, ff_name):
         try:
@@ -60,6 +66,7 @@ class hardware_state:
             return False
         if fifo:
             self.fifos[ff_name] = fifo
+            self.save()
             return True
         return False
 
@@ -67,3 +74,28 @@ class hardware_state:
         if ff_name in self.fifos:
             self.fifos[ff_name].close()
             del self.fifos[ff_name]
+            self.save()
+
+
+    def clear(self):
+        self.sensors = {}
+        for key in self.fifos:
+            self.fifos[key].close()
+        self.fifos = {}
+
+    # Saves the hardware state as a sequence of commands that would recreate that state
+    def save(self):
+        if self.block_saving:
+            return
+
+        out = open("hardware_state.dat", "w")
+        for key in self.sensors:
+            sens = self.sensors[key]
+            out.write("sensor add " + sens.id + " " + str(sens.t_rising)
+            + " " + str(sens.t_falling)
+            + " " + str(sens.threshold_rising)
+            + " " + str(sens.threshold_falling) + "\n")
+
+        for ff_name in self.fifos:
+            out.write("fifo add " + ff_name + "\n")
+        out.close()

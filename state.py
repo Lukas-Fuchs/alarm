@@ -4,3 +4,11 @@ from hardware_state import *
 class state:
     alarm_state = alarm_state()
     hardware_state = hardware_state()
+
+    def clear(self):
+        self.alarm_state.clear()
+        self.hardware_state.clear()
+
+    def block_saving(self, block):
+        self.alarm_state.block_saving = block
+        self.hardware_state.block_saving = block
