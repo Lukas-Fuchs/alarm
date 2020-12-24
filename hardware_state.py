@@ -1,5 +1,8 @@
 import datetime
 from datetime import datetime as dt
+import threading
+from threading import Lock
+import os
 
 
 class sensor:
@@ -53,35 +56,44 @@ class hardware_state:
     # all fifos to get information from
     fifos = {}
 
+    lock = threading.Lock()
+
 
     def add_sensor(self, s):
-        self.sensors[sensor.id] = s
-        self.save()
+        with self.lock:
+            self.sensors[sensor.id] = s
+            self.save()
 
     def add_fifo(self, ff_name):
-        try:
-            fifo = open(ff_name, "rb+", 0)
-        except IOError as e:
-            print(e)
+        with self.lock:
+            try:
+                fifo_fd = os.open(ff_name, os.O_RDWR)
+                os.set_blocking(fifo_fd, False)
+                fifo = os.fdopen(fifo_fd, "rb+", 0)
+
+                if fifo:
+                    self.fifos[ff_name] = fifo
+                    self.save()
+                    return True
+            except IOError as e:
+                print(e)
+                return False
             return False
-        if fifo:
-            self.fifos[ff_name] = fifo
-            self.save()
-            return True
-        return False
 
     def delete_fifo(self, ff_name):
-        if ff_name in self.fifos:
-            self.fifos[ff_name].close()
-            del self.fifos[ff_name]
-            self.save()
+        with self.lock:
+            if ff_name in self.fifos:
+                self.fifos[ff_name].close()
+                del self.fifos[ff_name]
+                self.save()
 
 
     def clear(self):
-        self.sensors = {}
-        for key in self.fifos:
-            self.fifos[key].close()
-        self.fifos = {}
+        with self.lock:
+            self.sensors = {}
+            for key in self.fifos:
+                self.fifos[key].close()
+            self.fifos = {}
 
     # Saves the hardware state as a sequence of commands that would recreate that state
     def save(self):

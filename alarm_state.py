@@ -1,5 +1,7 @@
 import datetime
 from datetime import datetime as dt
+import threading
+from threading import Lock
 
 class alarm:
     time = dt.now()
@@ -15,6 +17,8 @@ class alarm_state:
     # If this is true save() won't have any effect.
     # This can be helpful to prevent saving when replaying changes to the state
     block_saving = False
+
+    lock = threading.Lock()
 
     def add_alarm(self, time, mode):
         now = dt.now()

@@ -82,7 +82,7 @@ state.block_saving(False)
 server_thread = threading.Thread(target=server_main)
 server_thread.start()
 
-fifo_thread = threading.Thread(target=fifo_listener, args=(hardware_state,))
+fifo_thread = threading.Thread(target=fifo_listener, args=(state.hardware_state,))
 fifo_thread.start()
 
 alarm_polling_loop()
