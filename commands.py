@@ -70,7 +70,8 @@ def cmd_alarm_delete(state, params):
 help_strings["sensor"] = "sensor : commands to manage sensors:"
 def cmd_sensor(state, params):
     subcommands = {"add" : cmd_sensor_add,
-                   "known": cmd_sensor_known}
+                   "known": cmd_sensor_known,
+                   "list": cmd_sensor_list}
 
     if params:
         if params[0] in subcommands:
@@ -101,6 +102,13 @@ help_strings["sensor"] += "\n\t- known : lists all sensors that were encountered
 def cmd_sensor_known(state, params):
     list_str = ""
     for name in state.hardware_state.encountered_sensors:
+        list_str += name + "\n"
+    return list_str
+
+help_strings["sensor"] += "\n\t- list : lists all registered sensors"
+def cmd_sensor_list(state, params):
+    list_str = ""
+    for name in state.hardware_state.sensors:
         list_str += name + "\n"
     return list_str
 
