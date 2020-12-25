@@ -1,7 +1,7 @@
 import datetime
 import os
 from datetime import datetime as dt
-from hardware_state import sensor
+from hardware_state import sensor, action
 
 help_strings = {}
 
@@ -17,6 +17,8 @@ def cmd_help(state, params):
         for val in help_strings.values():
             full_help += val + "\n"
         return full_help
+
+################################### alarm commands #################################
 
 help_strings["alarm"] = "alarm <sub command> : commands for setting and modifying alarms"
 def cmd_alarm(state, params):
@@ -67,6 +69,8 @@ def cmd_alarm_delete(state, params):
         return "no such alarm\n"
     return cmd_help(state, ["alarm"])
 
+############################## sensor commands ###################################
+
 help_strings["sensor"] = "sensor : commands to manage sensors:"
 def cmd_sensor(state, params):
     subcommands = {"add" : cmd_sensor_add,
@@ -108,18 +112,16 @@ def cmd_sensor_known(state, params):
 help_strings["sensor"] += "\n\t- list : lists all registered sensors"
 def cmd_sensor_list(state, params):
     list_str = ""
-    max_len_id = 1
     for s in state.hardware_state.sensors.values():
         list_str += s.id + \
         "\tt_rising=" + str(s.t_rising) + \
         "\tt_falling=" + str(s.t_falling) + \
         "\tthreshold_rising=" + str(s.threshold_rising) + \
         "\tthreshold_falling=" + str(s.threshold_falling) + "\n"
-        if len(s.id) > max_len_id:
-             max_len_id = len(s.id)
-
 
     return list_str
+
+############################ FIFO commands ########################################
 
 help_strings["fifo"] = "fifo <sub command> : commands to manage FIFOs"
 def cmd_fifo(state, params):
@@ -165,3 +167,53 @@ def cmd_ls(state, params):
         for fname in files:
             list_str += "\t" + fname + "\n"
     return list_str
+
+############################### action commands #####################################
+
+help_strings["action"] = "action : commands for managing actions"
+def cmd_action(state, params):
+        subcommands = {"add" : cmd_action_add,
+                       "list" : cmd_action_list,
+                       "delete" : cmd_action_delete}
+
+        if params:
+            if params[0] in subcommands:
+                return subcommands[params[0]](state, params[1:])
+
+        return cmd_help(state, ["action"])
+
+help_strings["action"] += "\n\t- add <id> <fifo> <value> : adds an action"
+help_strings["action"] += "\n\t\t- id : the name of the action to refer to later"
+help_strings["action"] += "\n\t\t- fifo : a registered fifo to write the action to"
+help_strings["action"] += "\n\t\t- value : value to be written to the fifo"
+def cmd_action_add(state, params):
+    if len(params) < 3:
+        return "usage: action add <id> <fifo> <value>\n"
+    act = action()
+    act.id = params[0]
+    act.fifo = params[1]
+    act.value = params[2]
+    # the value parameter is greedy
+    for p in params[3:]:
+        act.value += " " + p
+    state.hardware_state.add_action(act)
+    return "action added\n"
+
+help_strings["action"] += "\n\t- list : lists all registered actions"
+def cmd_action_list(state, params):
+    list_str = ""
+    for act in state.hardware_state.actions.values():
+        list_str += act.id + \
+        "\tfifo=" + str(act.fifo) + \
+        "\tvalue=\"" + str(act.value) + "\"\n"
+
+
+    return list_str
+
+help_strings["action"] += "\n\t- delete <id> : deletes the action with id <id>"
+def cmd_action_delete(state, params):
+    if not params:
+        return "usage: action delete <id>\n"
+    if not state.hardware_state.delete_action(params[0]):
+        return "no such action"
+    return "action deleted"

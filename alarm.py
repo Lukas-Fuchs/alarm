@@ -19,6 +19,7 @@ def telnet_command(line):
         "alarm" : cmd_alarm,
         "sensor" : cmd_sensor,
         "fifo" : cmd_fifo,
+        "action" : cmd_action,
         "ls" : cmd_ls
             }
 

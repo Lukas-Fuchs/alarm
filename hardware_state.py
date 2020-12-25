@@ -100,6 +100,17 @@ class hardware_state:
                 del self.fifos[ff_name]
                 self.save()
 
+    def add_action(self, act):
+        self.actions[act.id] = act
+        self.save()
+
+    def delete_action(self, id):
+        if id in self.actions:
+            del self.actions[id]
+            self.save()
+            return True
+        return False
+
 
     def clear(self):
         with self.lock:
@@ -123,4 +134,8 @@ class hardware_state:
 
         for ff_name in self.fifos:
             out.write("fifo add " + ff_name + "\n")
+
+        for act in self.actions.values():
+            out.write("action add " + act.id + " " + act.fifo + " " + act.value + "\n")
+
         out.close()
