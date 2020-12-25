@@ -7,17 +7,7 @@ import os
 
 class sensor:
     id = ""                 # identifier; name that the sensor identifies itself with
-    trivial_name = ""       # intuitive name that may be set by the user
     type = ""               # type of sensor; may be relevant for interpreting signals
-
-    # the default settings are for a stable sensor with refresh rate < 1s
-    t_rising = 0            # time (in s) required to interpret signals as activation
-    t_falling = 1           # time (in s) required to interpret no-signal as deactivation
-
-    # setting both of these to the same number results in everything greater
-    # to be interpreted as on
-    threshold_rising = 0    # signal level required to interpret as on
-    threshold_falling = 0   # max signal level to be interpreted as off
 
     ###### run time state ######
 
@@ -25,26 +15,12 @@ class sensor:
     # This can be helpful to prevent saving when replaying changes to the state
     block_saving = False
 
-    _activated = False
-    _signal_level = 0
-
-    # a run is defined as a series of equal logic levels over a period of time
-    _run_value = False
-    _run_start = dt.now()
+    signal_level = 0
 
     # called whenever a signal is received from this sensor
     def signal(self, level):
         print("signal " + str(level) + " for sensor " + self.id)
-        run_time = (dt.now() - self._run_start).total_seconds()
-        would_activate = not level <= self.threshold_falling and level >= self.threshold_rising
-
-        if would_activate != self._run_value:
-            self._run_start = dt.now()
-            run_time = 0
-            self._run_value = would_activate
-
-        if (would_activate and run_time >= self.t_rising) or (not would_activate and run_time >= self.t_falling):
-            self._activated = would_activate
+        self.signal_level = level
 
 # pretty simple data class to describe actions to be taken as rule consequences
 class action:
@@ -72,9 +48,13 @@ class hardware_state:
     lock = threading.Lock()
 
 
-    def add_sensor(self, s):
+    def add_sensor(self, id):
         with self.lock:
-            self.sensors[s.id] = s
+            s = sensor()
+            s.id = id
+            self.sensors[id] = s
+            if id not in encountered_sensors:
+                encountered_sensors.append(id)
             self.save()
 
     def add_fifo(self, ff_name):

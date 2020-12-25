@@ -90,19 +90,8 @@ help_strings["sensor"] += "\n\t- add <id> : adds the sensor with the specified I
 def cmd_sensor_add(state, params):
     if not params:
         return "id field missing\n"
-    sens = sensor()
-    sens.id = params[0]
-    sens.trivial_name = sens.id
-    if len(params) > 1:
-        sens.t_rising = int(params[1])
-    if len(params) > 2:
-        sens.t_falling = int(params[2])
-    if len(params) > 3:
-        sens.threshold_rising = int(params[3])
-    if len(params) > 4:
-        sens.threshold_falling = int(params[4])
 
-    state.hardware_state.add_sensor(sens)
+    state.hardware_state.add_sensor(params[0])
     return "sensor added\n"
 
 help_strings["sensor"] += "\n\t- known : lists all sensors that were encountered by their input, registered or not"
@@ -115,12 +104,8 @@ def cmd_sensor_known(state, params):
 help_strings["sensor"] += "\n\t- list : lists all registered sensors"
 def cmd_sensor_list(state, params):
     list_str = ""
-    for s in state.hardware_state.sensors.values():
-        list_str += s.id + \
-        "\tt_rising=" + str(s.t_rising) + \
-        "\tt_falling=" + str(s.t_falling) + \
-        "\tthreshold_rising=" + str(s.threshold_rising) + \
-        "\tthreshold_falling=" + str(s.threshold_falling) + "\n"
+    for s in state.hardware_state.sensors:
+        list_str += s + "\n"
 
     return list_str
 
