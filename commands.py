@@ -108,8 +108,17 @@ def cmd_sensor_known(state, params):
 help_strings["sensor"] += "\n\t- list : lists all registered sensors"
 def cmd_sensor_list(state, params):
     list_str = ""
-    for name in state.hardware_state.sensors:
-        list_str += name + "\n"
+    max_len_id = 1
+    for s in state.hardware_state.sensors.values():
+        list_str += s.id + \
+        "\tt_rising=" + str(s.t_rising) + \
+        "\tt_falling=" + str(s.t_falling) + \
+        "\tthreshold_rising=" + str(s.threshold_rising) + \
+        "\tthreshold_falling=" + str(s.threshold_falling) + "\n"
+        if len(s.id) > max_len_id:
+             max_len_id = len(s.id)
+
+
     return list_str
 
 help_strings["fifo"] = "fifo <sub command> : commands to manage FIFOs"
