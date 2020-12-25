@@ -57,8 +57,10 @@ def server_main():
 # periodically poll alarm state.alarm_state for alarms that are ready to be triggered
 def alarm_polling_loop():
     while True:
-        if state.alarm_state.poll():
+        al = state.alarm_state.poll()
+        if al:
             print("alarm triggered")
+            state.hardware_state.perform_action(al.action)
         time.sleep(20)
 
 # load and replay commands that build the saved state.alarm_state

@@ -100,17 +100,32 @@ class hardware_state:
                 del self.fifos[ff_name]
                 self.save()
 
+    # This is intended for parallel-thread use.
+    def write_fifo(self, ff_name, message):
+        if ff_name in self.fifos:
+            self.lock.acquire(blocking=False)
+            self.fifos[ff_name].write(bytes(message + "\n", "utf-8"))
+            self.fifos[ff_name].flush()
+            self.lock.release()
+
     def add_action(self, act):
-        self.actions[act.id] = act
-        self.save()
+        with self.lock:
+            self.actions[act.id] = act
+            self.save()
 
     def delete_action(self, id):
-        if id in self.actions:
-            del self.actions[id]
-            self.save()
-            return True
-        return False
+        with self.lock:
+            if id in self.actions:
+                del self.actions[id]
+                self.save()
+                return True
+            return False
 
+    def perform_action(self, id):
+        if id in self.actions:
+            act = self.actions[id]
+            writing_thread = threading.Thread(target=self.write_fifo, args=(act.fifo, act.value,))
+            writing_thread.start()
 
     def clear(self):
         with self.lock:

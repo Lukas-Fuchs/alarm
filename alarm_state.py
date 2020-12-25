@@ -5,9 +5,11 @@ from threading import Lock
 
 class alarm:
     time = dt.now()
+    action = ""
     mode = "daily"
-    def __init__(self, time, mode):
+    def __init__(self, time, action, mode):
         self.time = time
+        self.action = action
         self.mode = mode
 
 # contains all state related directly to alarms
@@ -20,13 +22,13 @@ class alarm_state:
 
     lock = threading.Lock()
 
-    def add_alarm(self, time, mode):
+    def add_alarm(self, time, action, mode):
         now = dt.now()
         if time < now:
             # if the alarm would not trigger today add it for tomorrow
             time = dt.combine(now.date(), time.time())
             time += datetime.timedelta(days=1)
-        self.alarms.append(alarm(time, mode))
+        self.alarms.append(alarm(time, action, mode))
         self.save()
 
     # Checks if an alarm is ready to be triggered
@@ -40,7 +42,7 @@ class alarm_state:
                 elif al.mode == "daily":
                     # daily alarms will trigger at the same time the next day
                     al.time += datetime.timedelta(days=1)
-                return True
+                return al
         return False
 
     # Removes an alarm from the list and saves the change
@@ -58,5 +60,5 @@ class alarm_state:
 
         out = open("alarm_state.dat", "w")
         for al in self.alarms:
-            out.write("alarm add " + al.time.strftime("%H:%M") + " " + al.mode + "\n")
+            out.write("alarm add " + al.time.strftime("%H:%M") + " " + al.action + " " + al.mode + "\n")
         out.close()

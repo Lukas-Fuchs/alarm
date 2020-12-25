@@ -33,21 +33,24 @@ def cmd_alarm(state, params):
     return cmd_help(state, ["alarm"])
 
 
-help_strings["alarm"] += "\n\t- add <hour>:<minute> [mode] : sets an alarm\n\t\tmode can be: \"daily\", \"single\""
+help_strings["alarm"] += "\n\t- add <hour>:<minute> <action> [mode] : sets an alarm\n\t\tmode can be: \"daily\", \"single\""
 def cmd_alarm_add(state, params):
-    if params:
+    if len(params) >= 2:
         time = dt.now()
         mode = "daily"
 
-        time = dt.combine(time.date(), dt.strptime(params[0], "%H:%M").time())
+        try:
+            time = dt.combine(time.date(), dt.strptime(params[0], "%H:%M").time())
+        except:
+            return "invalid time format\n"
 
-        if len(params) > 1:
+        if len(params) > 2:
             if params[1] in ["daily", "single"]:
                 mode = params[1]
             else:
                 return "invalid repetition type"
 
-        state.alarm_state.add_alarm(time, mode)
+        state.alarm_state.add_alarm(time, params[1], mode)
         return "alarm set\n"
     return cmd_help(state, ["alarm"])
 
