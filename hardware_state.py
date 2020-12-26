@@ -4,24 +4,6 @@ import threading
 from threading import Lock
 import os
 
-
-class sensor:
-    id = ""                 # identifier; name that the sensor identifies itself with
-    type = ""               # type of sensor; may be relevant for interpreting signals
-
-    ###### run time state ######
-
-    # If this is true save() won't have any effect.
-    # This can be helpful to prevent saving when replaying changes to the state
-    block_saving = False
-
-    signal_level = 0
-
-    # called whenever a signal is received from this sensor
-    def signal(self, level):
-        print("signal " + str(level) + " for sensor " + self.id)
-        self.signal_level = level
-
 # pretty simple data class to describe actions to be taken as rule consequences
 class action:
     # unique identifier for this action; used to reference it further
@@ -34,7 +16,8 @@ class action:
 
 
 class hardware_state:
-    # holds all sensors, the key being the sensor's id.
+    # holds all sensor states, the key being the sensor's id
+    # and the value the last signal encountered.
     sensors = {}
     # all sensor identifiers (registered or not) that have been encountered
     encountered_sensors = []
@@ -45,20 +28,20 @@ class hardware_state:
     # all registered actions
     actions = {}
 
-    lock = threading.Lock()
+    # locks that block reading and writing respectively
+    lock_read = threading.Lock()
+    lock_write = threading.Lock()
 
 
     def add_sensor(self, id):
-        with self.lock:
-            s = sensor()
-            s.id = id
-            self.sensors[id] = s
-            if id not in encountered_sensors:
-                encountered_sensors.append(id)
+        with self.lock_read:
+            self.sensors[id] = 0
+            if id not in self.encountered_sensors:
+                self.encountered_sensors.append(id)
             self.save()
 
     def add_fifo(self, ff_name):
-        with self.lock:
+        with self.lock_read:
             try:
                 fifo_fd = os.open(ff_name, os.O_RDWR)
                 os.set_blocking(fifo_fd, False)
@@ -74,7 +57,7 @@ class hardware_state:
             return False
 
     def delete_fifo(self, ff_name):
-        with self.lock:
+        with self.lock_read, self.lock_write:
             if ff_name in self.fifos:
                 self.fifos[ff_name].close()
                 del self.fifos[ff_name]
@@ -83,32 +66,31 @@ class hardware_state:
     # This is intended for parallel-thread use.
     def write_fifo(self, ff_name, message):
         if ff_name in self.fifos:
-            self.lock.acquire(blocking=False)
-            self.fifos[ff_name].write(bytes(message + "\n", "utf-8"))
-            self.fifos[ff_name].flush()
-            self.lock.release()
+            with self.lock_write:
+                self.fifos[ff_name].write(bytes(message + "\n", "utf-8"))
+                self.fifos[ff_name].flush()
 
     def add_action(self, act):
-        with self.lock:
-            self.actions[act.id] = act
-            self.save()
+        self.actions[act.id] = act
+        self.save()
 
     def delete_action(self, id):
-        with self.lock:
-            if id in self.actions:
+        if id in self.actions:
+            with self.lock_read, self.lock_write:
                 del self.actions[id]
                 self.save()
                 return True
-            return False
+        return False
 
     def perform_action(self, id):
         if id in self.actions:
             act = self.actions[id]
+            was_locked = self.lock.locked()
             writing_thread = threading.Thread(target=self.write_fifo, args=(act.fifo, act.value,))
             writing_thread.start()
 
     def clear(self):
-        with self.lock:
+        with self.lock_read, self.lock_write:
             self.sensors = {}
             for key in self.fifos:
                 self.fifos[key].close()
@@ -120,12 +102,8 @@ class hardware_state:
             return
 
         out = open("hardware_state.dat", "w")
-        for key in self.sensors:
-            sens = self.sensors[key]
-            out.write("sensor add " + sens.id + " " + str(sens.t_rising)
-            + " " + str(sens.t_falling)
-            + " " + str(sens.threshold_rising)
-            + " " + str(sens.threshold_falling) + "\n")
+        for id in self.sensors:
+            out.write("sensor add " + id + "\n")
 
         for ff_name in self.fifos:
             out.write("fifo add " + ff_name + "\n")

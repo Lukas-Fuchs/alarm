@@ -1,7 +1,7 @@
 import datetime
 import os
 from datetime import datetime as dt
-from hardware_state import sensor, action
+from hardware_state import action
 
 help_strings = {}
 

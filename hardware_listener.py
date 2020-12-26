@@ -6,7 +6,7 @@ import time
 def fifo_listener(state):
     while True:
         time.sleep(0.1)
-        state.lock.acquire(blocking=False)
+        state.lock_read.acquire(blocking=False)
         for fifo in state.fifos.values():
             if fifo.closed:
                 continue
@@ -25,5 +25,5 @@ def fifo_listener(state):
                     if words[0] not in state.encountered_sensors:
                         state.encountered_sensors.append(words[0])
                     if words[0] in state.sensors:
-                        state.sensors[words[0]].signal(int(words[1]))
-        state.lock.release()
+                        state.sensors[words[0]] = int(words[1])
+        state.lock_read.release()
