@@ -28,7 +28,7 @@ class rule:
         #print(str(value))
         advance = accept
         if self.timeout >= 0:
-            advance = advance or (dt.now() - self._time_start()).total_seconds() >= self.timeout
+            advance = advance or (dt.now() - self._time_start).total_seconds() >= self.timeout
         self._ready = not advance       # unless the chain advances this rule's times will still be correct
         return accept, advance
 
