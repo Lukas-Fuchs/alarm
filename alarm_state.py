@@ -5,11 +5,11 @@ from threading import Lock
 
 class alarm:
     time = dt.now()
-    action = ""
+    sensor = "alarm"
     mode = "daily"
-    def __init__(self, time, action, mode):
+    def __init__(self, time, sensor, mode):
         self.time = time
-        self.action = action
+        self.sensor = sensor
         self.mode = mode
 
 # contains all state related directly to alarms
@@ -22,17 +22,20 @@ class alarm_state:
 
     lock = threading.Lock()
 
-    def add_alarm(self, time, action, mode):
+    def __init__(self):
+        self.alarms = []
+
+    def add_alarm(self, time, sensor, mode):
         now = dt.now()
         if time < now:
             # if the alarm would not trigger today add it for tomorrow
             time = dt.combine(now.date(), time.time())
             time += datetime.timedelta(days=1)
-        self.alarms.append(alarm(time, action, mode))
+        self.alarms.append(alarm(time, sensor, mode))
         self.save()
 
     # Checks if an alarm is ready to be triggered
-    def poll(self):
+    def poll(self, hw_state):
         now = dt.now()
         for al in self.alarms:
             if al.time <= now:
@@ -42,7 +45,9 @@ class alarm_state:
                 elif al.mode == "daily":
                     # daily alarms will trigger at the same time the next day
                     al.time += datetime.timedelta(days=1)
+                    hw_state.sensors[al.sensor] = 1
                 return al
+            hw_state.sensors[al.sensor] = 0
         return False
 
     # Removes an alarm from the list and saves the change
@@ -60,5 +65,5 @@ class alarm_state:
 
         out = open("alarm_state.dat", "w")
         for al in self.alarms:
-            out.write("alarm add " + al.time.strftime("%H:%M") + " " + al.action + " " + al.mode + "\n")
+            out.write("alarm add " + al.time.strftime("%H:%M") + " " + al.sensor + " " + al.mode + "\n")
         out.close()

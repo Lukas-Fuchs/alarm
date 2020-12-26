@@ -85,7 +85,6 @@ class hardware_state:
     def perform_action(self, id):
         if id in self.actions:
             act = self.actions[id]
-            was_locked = self.lock.locked()
             writing_thread = threading.Thread(target=self.write_fifo, args=(act.fifo, act.value,))
             writing_thread.start()
 

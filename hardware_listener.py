@@ -1,4 +1,3 @@
-from hardware_state import *
 import time
 
 # Listens for FIFO input

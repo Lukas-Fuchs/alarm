@@ -1,7 +1,9 @@
 import datetime
 import os
+import sys
 from datetime import datetime as dt
 from hardware_state import action
+from rule_state import rule
 
 help_strings = {}
 
@@ -33,10 +35,11 @@ def cmd_alarm(state, params):
     return cmd_help(state, ["alarm"])
 
 
-help_strings["alarm"] += "\n\t- add <hour>:<minute> <action> [mode] : sets an alarm\n\t\tmode can be: \"daily\", \"single\""
+help_strings["alarm"] += "\n\t- add <hour>:<minute> [sensor] [mode] : sets an alarm\n\t\tmode can be: \"daily\", \"single\""
 def cmd_alarm_add(state, params):
-    if len(params) >= 2:
+    if len(params) >= 1:
         time = dt.now()
+        sensor = "alarm"
         mode = "daily"
 
         try:
@@ -44,13 +47,16 @@ def cmd_alarm_add(state, params):
         except:
             return "invalid time format\n"
 
+        if len(params) > 1:
+            sensor = params[1]
+
         if len(params) > 2:
-            if params[1] in ["daily", "single"]:
-                mode = params[1]
+            if params[2] in ["daily", "single"]:
+                mode = params[2]
             else:
                 return "invalid repetition type"
 
-        state.alarm_state.add_alarm(time, params[1], mode)
+        state.alarm_state.add_alarm(time, sensor, mode)
         return "alarm set\n"
     return cmd_help(state, ["alarm"])
 
@@ -177,6 +183,8 @@ help_strings["action"] += "\n\t\t- value : value to be written to the fifo"
 def cmd_action_add(state, params):
     if len(params) < 3:
         return "usage: action add <id> <fifo> <value>\n"
+    if params[0] in state.rule_state.chains:
+        return "already defined as a chain\n"
     act = action()
     act.id = params[0]
     act.fifo = params[1]
@@ -198,10 +206,82 @@ def cmd_action_list(state, params):
 
     return list_str
 
-help_strings["action"] += "\n\t- delete <id> : deletes the action with id <id>"
+help_strings["action"] += "\n\t- delete <id> : deletes the action with ID <id>"
 def cmd_action_delete(state, params):
     if not params:
         return "usage: action delete <id>\n"
     if not state.hardware_state.delete_action(params[0]):
         return "no such action"
     return "action deleted"
+
+############################## chain commands ##################################
+
+help_strings["chain"] = "chain <sub command> : commands for managing chains"
+def cmd_chain(state, params):
+    subcommands = {"add" : cmd_chain_add,
+                   "list" : cmd_chain_list,
+                   "delete" : cmd_chain_delete}
+
+    if params:
+        if params[0] in subcommands:
+            return subcommands[params[0]](state, params[1:])
+
+    return cmd_help(state, ["chain"])
+
+help_strings["chain"] += "\n\t- add <id> : adds a new chain with ID <id>"
+def cmd_chain_add(state, params):
+    if not params:
+        return "id parameter missing\n"
+    if params[0] in state.hardware_state.actions:
+        return "already defined as an action\n"
+    state.rule_state.add_chain(params[0])
+    return "chain added\n"
+
+help_strings["chain"] += "\n\t- list [id] : lists either chain [id] or all chains including their rules"
+def cmd_chain_list(state, params):
+    if params:
+        if params[0] in state.rule_state.chains:
+            return state.rule_state.chains[params[0]].dump_str()
+        return "no such chain\n"
+
+    list_str = ""
+    for chn in state.rule_state.chains.values():
+        list_str += chn.dump_str() + "\n"
+    return list_str
+
+help_strings["chain"] += "\n\t- delete <id> : deletes the chain with ID <id> including its rules"
+def cmd_chain_delete(state, params):
+    if not params:
+        return "id parameter missing\n"
+    state.rule_state.delete_chain(params[0])
+    return "chain deleted\n"
+
+############################## rule commands ###################################
+
+help_strings["rule"] = "rule <sub command> : commands for managing rules within chains"
+def cmd_rule(state, params):
+        subcommands = {"add" : cmd_rule_add}
+
+        if params:
+            if params[0] in subcommands:
+                return subcommands[params[0]](state, params[1:])
+
+        return cmd_help(state, ["rule"])
+
+help_strings["rule"] += "\n\t- add <chain> <sensor> <min> <max> [action] [timeout]"
+def cmd_rule_add(state, params, index=sys.maxsize):
+    if len(params) < 4:
+        return "usage: rule add <chain> <sensor> <min> <max> [action] [timeout]\n"
+    if params[0] not in state.rule_state.chains:
+        return "no such chain\n"
+    rl = rule()
+
+    rl.sensor = params[1]
+    rl.min_value = int(params[2])
+    rl.max_value = int(params[3])
+    if len(params) > 4 and params[4] != "-":
+        rl.action = params[4]
+    if len(params) > 5:
+        rl.timeout = int(params[5])
+    state.rule_state.add_rule(params[0], rl, index)    # append rule to the end
+    return "rule added\n"

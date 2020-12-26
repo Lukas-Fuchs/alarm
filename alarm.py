@@ -20,6 +20,8 @@ def telnet_command(line):
         "sensor" : cmd_sensor,
         "fifo" : cmd_fifo,
         "action" : cmd_action,
+        "chain" : cmd_chain,
+        "rule" : cmd_rule,
         "ls" : cmd_ls
             }
 
@@ -55,13 +57,16 @@ def server_main():
 
 
 # periodically poll alarm state.alarm_state for alarms that are ready to be triggered
-def alarm_polling_loop():
+def polling_loop():
     while True:
-        al = state.alarm_state.poll()
-        if al:
-            print("alarm triggered")
-            state.hardware_state.perform_action(al.action)
-        time.sleep(20)
+        for chn in state.rule_state.chains.values():
+            act = chn.poll(state.hardware_state.sensors)
+            if act:
+                state.hardware_state.perform_action(act)
+
+        state.alarm_state.poll(state.hardware_state)
+
+        time.sleep(0.1)
 
 # load and replay commands that build the saved state.alarm_state
 def replay_file(fname):
@@ -79,6 +84,7 @@ state.clear()
 state.block_saving(True)
 replay_file("alarm_state.dat")
 replay_file("hardware_state.dat")
+replay_file("rule_state.dat")
 state.block_saving(False)
 
 # start the server for handling telnet commands
@@ -88,4 +94,4 @@ server_thread.start()
 fifo_thread = threading.Thread(target=fifo_listener, args=(state.hardware_state,))
 fifo_thread.start()
 
-alarm_polling_loop()
+polling_loop()
