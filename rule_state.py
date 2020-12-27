@@ -83,7 +83,11 @@ class chain:
         list_str = "CHAIN " + self.id + "\n"
         for index in range(len(self.rules)):
             rl = self.rules[index]
-            list_str += " " + str(index) + " | sensor=" + rl.sensor \
+            if index == self._current_index:
+                list_str += "-> "
+            else:
+                list_str += "   "
+            list_str += str(index) + " | sensor=" + rl.sensor \
              + "\tmin=" + str(rl.min_value) \
              + "\tmax="+ str(rl.max_value) \
              + "\taction=" + rl.action \
