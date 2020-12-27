@@ -9,7 +9,7 @@ class action:
     # unique identifier for this action; used to reference it further
     id = ""
     # fifo to write to
-    fifo = ""
+    target = ""
     # what to write to the fifo;
     # this will usually be something a process at the other end of the fifo can understand.
     value = ""
@@ -85,8 +85,17 @@ class hardware_state:
     def perform_action(self, id):
         if id in self.actions:
             act = self.actions[id]
-            writing_thread = threading.Thread(target=self.write_fifo, args=(act.fifo, act.value,))
-            writing_thread.start()
+            try:
+                if act.target in self.fifos:
+                    writing_thread = threading.Thread(target=self.write_fifo, args=(act.target, act.value,))
+                    writing_thread.start()
+                elif act.target in self.sensors:
+                    int_value = int(act.value)
+                    self.sensors[act.target] = int_value
+            except:
+                # there are a number of things that can go wrong here, none of which matter really
+                pass
+            return
 
     def clear(self):
         with self.lock_read, self.lock_write:
@@ -108,6 +117,6 @@ class hardware_state:
             out.write("fifo add " + ff_name + "\n")
 
         for act in self.actions.values():
-            out.write("action add " + act.id + " " + act.fifo + " " + act.value + "\n")
+            out.write("action add " + act.id + " " + act.target + " " + act.value + "\n")
 
         out.close()

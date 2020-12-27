@@ -96,6 +96,8 @@ help_strings["sensor"] += "\n\t- add <id> : adds the sensor with the specified I
 def cmd_sensor_add(state, params):
     if not params:
         return "id field missing\n"
+    if params[0] in state.hardware_state.actions:
+        return "already defined as an action\n"
 
     state.hardware_state.add_sensor(params[0])
     return "sensor added\n"
@@ -178,16 +180,17 @@ def cmd_action(state, params):
 
 help_strings["action"] += "\n\t- add <id> <fifo> <value> : adds an action"
 help_strings["action"] += "\n\t\t- id : the name of the action to refer to later"
-help_strings["action"] += "\n\t\t- fifo : a registered fifo to write the action to"
+help_strings["action"] += "\n\t\t- target : a registered fifo or sensor to write the action to"
+help_strings["action"] += "\n\t\t         ->  note that in case of a sensor target the value must be numeric"
 help_strings["action"] += "\n\t\t- value : value to be written to the fifo"
 def cmd_action_add(state, params):
     if len(params) < 3:
-        return "usage: action add <id> <fifo> <value>\n"
-    if params[0] in state.rule_state.chains:
-        return "already defined as a chain\n"
+        return "usage: action add <id> <target> <value>\n"
+    if params[0] in state.hardware_state.sensors:
+        return "already defined as a sensor\n"
     act = action()
     act.id = params[0]
-    act.fifo = params[1]
+    act.target = params[1]
     act.value = params[2]
     # the value parameter is greedy
     for p in params[3:]:
@@ -200,7 +203,7 @@ def cmd_action_list(state, params):
     list_str = ""
     for act in state.hardware_state.actions.values():
         list_str += act.id + \
-        "\tfifo=" + str(act.fifo) + \
+        "\ttarget=" + str(act.target) + \
         "\tvalue=\"" + str(act.value) + "\"\n"
 
 
@@ -232,8 +235,6 @@ help_strings["chain"] += "\n\t- add <id> : adds a new chain with ID <id>"
 def cmd_chain_add(state, params):
     if not params:
         return "id parameter missing\n"
-    if params[0] in state.hardware_state.actions:
-        return "already defined as an action\n"
     state.rule_state.add_chain(params[0])
     return "chain added\n"
 
@@ -260,7 +261,9 @@ def cmd_chain_delete(state, params):
 
 help_strings["rule"] = "rule <sub command> : commands for managing rules within chains"
 def cmd_rule(state, params):
-        subcommands = {"add" : cmd_rule_add}
+        subcommands = {"add" : cmd_rule_add,
+                       "insert" : cmd_rule_insert,
+                       "delete": cmd_rule_delete}
 
         if params:
             if params[0] in subcommands:
@@ -269,6 +272,7 @@ def cmd_rule(state, params):
         return cmd_help(state, ["rule"])
 
 help_strings["rule"] += "\n\t- add <chain> <sensor> <min> <max> [action] [timeout]"
+help_strings["rule"] += "\n\t\t- adds a rule to the end of <chain>"
 def cmd_rule_add(state, params, index=sys.maxsize):
     if len(params) < 4:
         return "usage: rule add <chain> <sensor> <min> <max> [action] [timeout]\n"
@@ -285,3 +289,21 @@ def cmd_rule_add(state, params, index=sys.maxsize):
         rl.timeout = int(params[5])
     state.rule_state.add_rule(params[0], rl, index)    # append rule to the end
     return "rule added\n"
+
+help_strings["rule"] += "\n\t- insert <index> <chain> <sensor> <min> <max> [action] [timeout]"
+help_strings["rule"] += "\n\t\t- adds a rule to chain right before the rule with <index>"
+def cmd_rule_insert(state, params):
+    if len(params) < 5:
+        return "usage: <index> <chain> <sensor> <min> <max> [action] [timeout]\n"
+    return cmd_rule_add(state, params[1:], int(params[0]))
+
+help_strings["rule"] += "\n\t- delete <chain> <index> : removes the rule at <index> from <chain>"
+def cmd_rule_delete(state, params):
+    if len(params) < 2:
+        return "usage: rule delete <chain> <index>\n"
+    if params[0] not in state.rule_state.chains:
+        return "no such chain\n"
+    chn = state.rule_state.chains[params[0]]
+    if not chn.delete_rule(int(params[1])):
+        return "rule index out of range\n"
+    return "rule deleted\n"

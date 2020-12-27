@@ -25,7 +25,6 @@ class rule:
         if not self._ready:
             self._time_start = dt.now()
         accept = self.min_value <= value <= self.max_value
-        #print(str(value))
         advance = accept
         if self.timeout >= 0:
             advance = advance or (dt.now() - self._time_start).total_seconds() >= self.timeout
@@ -50,7 +49,7 @@ class chain:
             if index >= len(self.rules):
                 self.rules.append(rl)
                 return
-            self.rules.insert(rl, index)
+            self.rules.insert(index, rl)
 
     def delete_rule(self, index):
         with self._lock:
