@@ -43,7 +43,7 @@ class hardware_state:
     def add_fifo(self, ff_name):
         with self.lock_read:
             try:
-                fifo_fd = os.open(ff_name, os.O_RDWR)
+                fifo_fd = os.open("fifos/" + ff_name, os.O_RDWR)
                 os.set_blocking(fifo_fd, False)
                 fifo = os.fdopen(fifo_fd, "rb+", 0)
 

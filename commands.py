@@ -96,8 +96,8 @@ help_strings["sensor"] += "\n\t- add <id> : adds the sensor with the specified I
 def cmd_sensor_add(state, params):
     if not params:
         return "id field missing\n"
-    if params[0] in state.hardware_state.actions:
-        return "already defined as an action\n"
+    if params[0] in state.hardware_state.fifos:
+        return "already defined as a fifo\n"
 
     state.hardware_state.add_sensor(params[0])
     return "sensor added\n"
@@ -135,6 +135,8 @@ help_strings["fifo"] += "\n\t- add <file> : adds file <file> as a FIFO"
 def cmd_fifo_add(state, params):
     if not params:
         return "FIFO file missing\n"
+    if params[0] in state.hardware_state.sensors:
+        return "already defined as a sensor"
     if state.hardware_state.add_fifo(params[0]):
         return "FIFO added\n"
     return "failed to add FIFO\n"
@@ -186,8 +188,6 @@ help_strings["action"] += "\n\t\t- value : value to be written to the fifo"
 def cmd_action_add(state, params):
     if len(params) < 3:
         return "usage: action add <id> <target> <value>\n"
-    if params[0] in state.hardware_state.sensors:
-        return "already defined as a sensor\n"
     act = action()
     act.id = params[0]
     act.target = params[1]
