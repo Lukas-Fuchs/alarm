@@ -113,7 +113,7 @@ help_strings["sensor"] += "\n\t- list : lists all registered sensors"
 def cmd_sensor_list(state, params):
     list_str = ""
     for s in state.hardware_state.sensors:
-        list_str += s + "\n"
+        list_str += s + " = " + str(state.hardware_state.sensors[s]) + "\n"
 
     return list_str
 
